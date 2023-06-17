@@ -1,25 +1,31 @@
 #include <WiFiNINA.h>
-// #include <WiFiUdp.h>
+#include "src/libraries/Arduino_LSM6DSOX/src/Arduino_LSM6DSOX.h"
+#include "util/util.h"
 
 #define USB_DEBUG_MODE // This should commented if the arduino is not going to be used in USB powered debugging mode.
                        // So no-USB = comment the line. Otherwise it gets stuck.
 
-char ssid[] = "tracked-object-AP";        // your network SSID (name)
-char pass[] = "password";                 // your network password (use for WPA, or use as key for WEP)
-int keyIndex = 0;                         // your network key index number (needed only for WEP)
-
-int status = WL_IDLE_STATUS;
+//******************** Wifi Parameters ********************//
+char ssid[] = "tracked-object-AP";        // Network SSID (name)
+char pass[] = "password";                 // Network password (
 
 // The IP address of this device generally becomes 196.168.4.1
-unsigned int webServerPort = 80;    // This has nothing to do with UDP
-unsigned int localPort     = 2390;      // This is the port the main devices should listen to
-unsigned int remotePort    = 5500;     // This is the port where this arduino sends UDP Packets to.
+unsigned int webServerPort = 80;     // I don't think this is needed for UDP
+unsigned int localPort     = 2390;   // This is the port the main devices should listen to.
+unsigned int remotePort    = 5500;   // This is the port where this arduino sends UDP Packets to.
+
 IPAddress remoteIP;
 WiFiServer server(webServerPort);
 WiFiUDP Udp;
 
-uint8_t packetBuffer[28];           // This is the buffer that is being send over UDP
+int status = WL_IDLE_STATUS;
+//*********************************************************//
 
+//******************** Sensor Parameters ********************//
+packetBuffer packetBuffer;            // This is the buffer that is being sent over UDP
+
+
+//***********************************************************//
 void setup() {
 
 //******************** LED Setup ********************//
@@ -29,7 +35,7 @@ void setup() {
   digitalWrite(LEDR, LOW);
   digitalWrite(LEDG, LOW);
   digitalWrite(LEDB, LOW);
-  // digitalWrite(LEDR, HIGH);
+  digitalWrite(LEDR, HIGH);
   // digitalWrite(LEDG, HIGH);
   digitalWrite(LEDB, HIGH);
 //***************************************************//
@@ -42,10 +48,7 @@ void setup() {
 #endif
 //***********************************************************//
 
-
 //******************** Wifi Access Point Setup ********************//
-
-
 #ifdef USB_DEBUG_MODE
   // check for the WiFi module:
   if (WiFi.status() == WL_NO_MODULE) {
@@ -59,7 +62,7 @@ void setup() {
   if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
     Serial.println("Please upgrade the firmware");
   }
-  // print the network name (SSID);
+  // Print the network name (SSID);
   Serial.print("Creating access point named: ");
   Serial.println(ssid);
 #endif
@@ -67,22 +70,28 @@ void setup() {
   // Create open network.
   status = WiFi.beginAP(ssid, pass);
   if (status != WL_AP_LISTENING) {
-    // Serial.println("Creating access point failed");
+#ifdef USB_DEBUG_MODE
+    Serial.println("Creating access point failed");
+#endif
     while (true);
   }
 
-  // wait 5 seconds for connection:
+  // Wait 5 seconds for connection:
   delay(5000);
-  // start the web server on port 80
+  // Start the web server on port 80.
   server.begin();
 
-  // you're connected now, so print out the status
+  // Connection is established, so print out the status.
 #ifdef USB_DEBUG_MODE
   printWiFiStatus();
 #endif
-  Udp.begin(localPort);
 
-  // Wait for the computer to connect to the access point.
+Udp.begin(localPort); // Start a UDP server on port "localPort".
+//*****************************************************************//
+
+//******************** Wifi Connection Setup ********************//
+
+  // Wait for the other device to connect to the access point.
   while(status !=WL_AP_CONNECTED){
     delay(200);
     status = WiFi.status();
@@ -91,6 +100,7 @@ void setup() {
 #ifdef USB_DEBUG_MODE
   Serial.println("Device connected to AP");
 #endif
+
   // Wait for the first UDP Packet to arrive for transmission to start.
   while(1){
     int packetSize = Udp.parsePacket();
@@ -109,60 +119,106 @@ void setup() {
       break;
     }
   }
-  // Get the remote IP and port that sended the UDP Starting message
+
+  // Get the remote IP and port that sended the UDP Starting message.
   remoteIP = Udp.remoteIP();
   remotePort = Udp.remotePort();
   
-  // Insert dummy values in the packetBuffer.
-  for(int i = 0; i < 28; i ++){
- 
-    packetBuffer[i] = (byte) 0x07;
+//*****************************************************************//
+
+
+
+  // Initialize IMU 
+  if (!IMU.begin()) {
+#ifdef USB_DEBUG_MODE
+    Serial.println("Failed to initialize IMU!");
+#endif
+    while (1);
   }
+
+  // Set I2C clock to max of 400kHz
+  Wire.setClock(400000); // Set I2C clock to max of the IMU.
+
+  // Calibrate the sensors. Sensor should be held still and level during this period.
+  delay(2000);
+  IMU.calibrateSensors();
+
 
 }
 
-#define NUMBER_TEST
 
 void loop() {
 
 
-#ifdef NUMBER_TEST
+
+
+  // sendSensorData();
+  // speedTestUDP();
+  timeTestUDP();
+}
+
+void sendSensorData(){
+  IMU.readSensors(packetBuffer);
+  sendUDPPacket;
+}
+
+void speedTestUDP(){
+  int packetNumber = 1000;
   int counter = 0;
   unsigned long start = micros();
-  while(counter < 1000){
+  while(counter < packetNumber){
+    IMU.readSensors(packetBuffer);
     sendUDPPacket();
     counter++;
   }
   unsigned long stop = micros();
 
-  while(1);
+#ifdef USB_DEBUG_MODE 
+  Serial.println("");
+  Serial.println("-------------------");
+  Serial.print("It took ");
+  Serial.print(stop - start);
+  Serial.print(" μs");
+  Serial.print(" to send ");
+  Serial.print(packetNumber);
+  Serial.println(" packets!");
+  Serial.println("-------------------");
 #endif
-#ifndef NUMBER_TEST
+  while(1);
+}
+
+void timeTestUDP(){
   int counter = 0;
+  int sendTime = 1000000;
   unsigned long start = micros();
   unsigned long stop = micros();
-  while(stop-start <1000){
+  while(stop-start <sendTime){
+    IMU.readSensors(packetBuffer);
     sendUDPPacket();
     stop = micros();
     counter++;
   }
-  // Serial.print("Time: ");
-  // Serial.println(stop - start);
-  // Serial.print("Counter: ");
-  // Serial.println(counter);
-  while(1);
-#endif
+#ifdef USB_DEBUG_MODE 
+  Serial.println("");
+  Serial.println("-------------------");
+  Serial.print(counter);
+  Serial.print(" packets have been sent in ");
+  Serial.print(stop - start);
+  Serial.println(" μs!");
+  Serial.println("-------------------");
 
+#endif
+  while(1);
 }
 
 void sendUDPPacket(){
   Udp.beginPacket(remoteIP, remotePort);
-  Udp.write(packetBuffer, 28);
+  Udp.write(packetBuffer.buffer, 28);
   Udp.endPacket();
 }
 
 void printWiFiStatus() {
-  // print the SSID of the network you're attached to:
+  // Print the SSID of the network you're attached to:
   Serial.print("SSID: ");
   Serial.println(WiFi.SSID());
 
