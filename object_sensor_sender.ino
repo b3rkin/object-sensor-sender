@@ -55,7 +55,7 @@ void setup() {
     Serial.println("Communication with WiFi module failed!");
     while (true);
   }
-
+  Serial.println("");
   Serial.println("Access Point Web Server");
 
   String fv = WiFi.firmwareVersion();
@@ -149,17 +149,17 @@ Udp.begin(localPort); // Start a UDP server on port "localPort".
 
 void loop() {
 
-
-
-
-  // sendSensorData();
+  sendSensorData();
   // speedTestUDP();
-  timeTestUDP();
+  // timeTestUDP();
+
 }
 
 void sendSensorData(){
-  IMU.readSensors(packetBuffer);
-  sendUDPPacket;
+  while(1){
+    IMU.readSensors(packetBuffer);
+    sendUDPPacket();
+  }
 }
 
 void speedTestUDP(){
