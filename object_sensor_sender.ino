@@ -2,8 +2,9 @@
 #include "src/libraries/Arduino_LSM6DSOX/src/Arduino_LSM6DSOX.h"
 #include "util/util.h"
 
-#define USB_DEBUG_MODE // This should commented if the arduino is not going to be used in USB powered debugging mode.
+// #define USB_DEBUG_MODE // This should commented if the arduino is not going to be used in USB powered debugging mode.
                        // So no-USB = comment the line. Otherwise it gets stuck.
+#define CMD_CHECK_INTERVAL (1000000) // The interval in microseconds in which the program checks if it has received new commands over UDP.
 
 //******************** Wifi Parameters ********************//
 char ssid[] = "tracked-object-AP";        // Network SSID (name)
@@ -22,7 +23,16 @@ int status = WL_IDLE_STATUS;
 //*********************************************************//
 
 //******************** Sensor Parameters ********************//
-packetBuffer packetBuffer;            // This is the buffer that is being sent over UDP
+packetBuffer packetBuffer;    // This is the buffer that is being sent over UDP
+char commandMessageBuffer[256];       //buffer to hold incoming packet
+char  ReplyBuffer[] = "acknowledged";       // a string to send back
+
+
+//******************** Program Parameters ********************//
+int modeFlag = 1;   // 0: Awaiting command. 
+                    // 1: Continuous operating mode.
+                    
+//************************************************************//
 
 
 //***********************************************************//
@@ -126,8 +136,6 @@ Udp.begin(localPort); // Start a UDP server on port "localPort".
   
 //*****************************************************************//
 
-
-
   // Initialize IMU 
   if (!IMU.begin()) {
 #ifdef USB_DEBUG_MODE
@@ -142,23 +150,61 @@ Udp.begin(localPort); // Start a UDP server on port "localPort".
   // Calibrate the sensors. Sensor should be held still and level during this period.
   delay(2000);
   IMU.calibrateSensors();
-
-
 }
 
 
 void loop() {
 
-  sendSensorData();
-  // speedTestUDP();
-  // timeTestUDP();
+  switch(modeFlag){
+    case 0:
+      while(true){
+
+        int command = checkCommand();
+
+        if(command == 0){ // If no command was received, wait for a command.
+          delay(1000);
+          continue;
+        } else if(command == 1){ // Start continuous operation mode.
+          modeFlag = 1;
+          break;
+        }
+      }
+      break;
+    case 1:
+      sendSensorData();
+      break;
+    default:
+      break;
+  }
 
 }
 
 void sendSensorData(){
+  unsigned long start;
+  unsigned long stop;
   while(1){
-    IMU.readSensors(packetBuffer);
-    sendUDPPacket();
+    start = micros();
+    stop = start;
+    while(stop - start < CMD_CHECK_INTERVAL){
+      IMU.readSensors(packetBuffer);
+      sendUDPPacket();
+      stop = micros();
+    }
+  switch(checkCommand()){
+    case 0:
+      continue;
+      break;
+    case 1:
+      continue;
+      break;
+    case 2: 
+      modeFlag = 0;
+      break;
+    default:
+      continue;
+      break;
+    }
+    break; // Break the loop and go into new mode.
   }
 }
 
@@ -228,3 +274,47 @@ void printWiFiStatus() {
   Serial.println(ip);
 }
 
+int checkCommand(){
+  // Check for a new packet:
+  int packetSize = Udp.parsePacket();
+  if (packetSize) {
+
+    int len = Udp.read(commandMessageBuffer, 255);
+    if (len > 0) {
+      commandMessageBuffer[len] = 0;
+    }
+
+    // send a reply, to the IP address and port that sent us the packet we received
+    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+    Udp.write(ReplyBuffer);
+    Udp.endPacket();
+
+#ifdef USB_DEBUG_MODE
+    Serial.println("");
+    Serial.println("The received command is:");
+    Serial.println(commandMessageBuffer);
+  
+#endif
+    if(commandMessageBuffer[0] == '0'){
+      return 0;
+    }
+    else if(commandMessageBuffer[0] == '1'){
+      if(modeFlag != 1){
+#ifdef USB_DEBUG_MODE
+      Serial.println("Starting operation in continuous mode!");
+#endif
+      }
+      return 1;
+    }
+    else if(commandMessageBuffer[0] == '2'){
+#ifdef USB_DEBUG_MODE
+      Serial.println("Stopping operation!");
+#endif
+      return 2; 
+    }
+
+  }
+  else{
+    return 0;
+  }
+}

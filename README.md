@@ -31,9 +31,14 @@ The packet that is sent over UDP is formatted as follows:
 |-------------|-------------|-----------|-----------------|-----------------|----------------|----------|
 | 4 bytes float | 4 bytes float | 4 bytes float| 4 bytes float | 4 bytes float | 4 bytes float|4 bytes unsigned long|
 
-
+## Command List
+By connecting to the arduino WiFi access point from another device or the main device, commands can be sent over UDP at all times. The following commands are available. 
+| Command #             | Command       |
+|---------------------|-------------------------------|
+|    1     |       Start continuous mode operation.   |
+|  2 |     Stop operation and go to "await command" mode .   |
+## Modes
 ## Units
-
 
 
 ## The coordinate system
@@ -43,7 +48,7 @@ Currently there are 2 python scripts available for data visualisation. One write
 ### save_packets_to_txt.py
 This script continuously saves the received UDP packets per line in a file called "packets.txt"
 ### rt_sensor_visualiser.py
-This script visualises the 6 incoming sensor values from the Arduino.
+This script visualises the 6 incoming sensor values from the Arduino in real-time.
 ## TO-DO
  - [ ] Add more operating modes and configurations.
    - [ ] Add LED color scheme based on operating mode.
