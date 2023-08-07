@@ -195,8 +195,8 @@ int LSM6DSOXClass::calibrateSensors(){
   gyroBias[1] = sensorSum[1]/calNum;
   gyroBias[2] = sensorSum[2]/calNum;
   accBias[0]  = sensorSum[3]/calNum;
-  accBias[1]  = sensorSum[4]/calNum;
-  accBias[2]  = sensorSum[5]/calNum - 1;
+  accBias[1]  = sensorSum[4]/calNum+1;
+  accBias[2]  = sensorSum[5]/calNum;
   
 
 }

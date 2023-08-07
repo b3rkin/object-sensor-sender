@@ -8,7 +8,7 @@
 
 //******************** Wifi Parameters ********************//
 char ssid[] = "tracked-object-AP";        // Network SSID (name)
-char pass[] = "password";                 // Network password (
+char pass[] = "password";                 // Network password 
 
 // The IP address of this device generally becomes 196.168.4.1
 unsigned int webServerPort = 80;     // I don't think this is needed for UDP
@@ -23,9 +23,9 @@ int status = WL_IDLE_STATUS;
 //*********************************************************//
 
 //******************** Sensor Parameters ********************//
-packetBuffer packetBuffer;    // This is the buffer that is being sent over UDP
-char commandMessageBuffer[256];       //buffer to hold incoming packet
-char  ReplyBuffer[] = "acknowledged";       // a string to send back
+packetBuffer packetBuffer;            // This is the buffer that is being sent over UDP.
+char commandMessageBuffer[256];       // Buffer to hold incoming packet.
+char ReplyBuffer[] = "acknowledged";  // A string to send back.
 
 
 //******************** Program Parameters ********************//
@@ -43,11 +43,8 @@ void setup() {
   pinMode(LEDG, OUTPUT);
   pinMode(LEDB, OUTPUT);
   digitalWrite(LEDR, LOW);
-  digitalWrite(LEDG, LOW);
+  digitalWrite(LEDG, HIGH);
   digitalWrite(LEDB, LOW);
-  digitalWrite(LEDR, HIGH);
-  // digitalWrite(LEDG, HIGH);
-  digitalWrite(LEDB, HIGH);
 //***************************************************//
 
 //******************** Serial Port Setup ********************//
@@ -102,7 +99,7 @@ Udp.begin(localPort); // Start a UDP server on port "localPort".
 //******************** Wifi Connection Setup ********************//
 
   // Wait for the other device to connect to the access point.
-  while(status !=WL_AP_CONNECTED){
+  while(status != WL_AP_CONNECTED){
     delay(200);
     status = WiFi.status();
   }
@@ -125,7 +122,6 @@ Udp.begin(localPort); // Start a UDP server on port "localPort".
       Serial.print(", port ");
       Serial.println(Udp.remotePort());
 #endif
-
       break;
     }
   }
@@ -144,8 +140,8 @@ Udp.begin(localPort); // Start a UDP server on port "localPort".
     while (1);
   }
 
-  // Set I2C clock to max of 400kHz
-  Wire.setClock(400000); // Set I2C clock to max of the IMU.
+  // Set I2C clock to max of 400kHz (Currently 3 MHz)
+  Wire.setClock(3000000); // Set I2C clock to max of the IMU.
 
   // Calibrate the sensors. Sensor should be held still and level during this period.
   delay(2000);
@@ -157,6 +153,7 @@ void loop() {
 
   switch(modeFlag){
     case 0:
+        digitalWrite(LEDB, HIGH); 
       while(true){
 
         int command = checkCommand();
@@ -171,11 +168,13 @@ void loop() {
       }
       break;
     case 1:
+      digitalWrite(LEDG, HIGH);
       sendSensorData();
       break;
     default:
       break;
   }
+  
 
 }
 

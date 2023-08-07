@@ -7,7 +7,7 @@ The Arduino creates a WIFI access point called "tracked-object-AP" and then star
 ## Setup
 This program specifically requires the Arduino Nano RP2040 board. To run this program the code can directly be compiled and uploaded to the board via the Arduino IDE, given that the required Arduino libraries stated in the dependencies section are installed. 
 1. Download the complete code to desired location on your computer.
-2. Open the "object_sensor_sender.ino" file with the Arduino IDE (v1 or v2).
+2. Open the "object-sensor-sender.ino" file with the Arduino IDE (v1 or v2).
 3. Connect the Arduino Nano RP2040 Connect to your machine via USB.
 4. Be sure to have installed required Arduino libraries (WiFiNINA).
 5. Select the correct board and port that is connected in the Arduino IDE. 
@@ -45,6 +45,8 @@ By connecting to the arduino WiFi access point from another device or the main d
 
 ## Data Visualisation
 Currently there are 2 python scripts available for data visualisation. One writes the raw incoming UDP packets to a file per line, the second visualises the incoming sensor data in real time. In both cases the PC needs to be connected to the Arduino via the "tracked-object-AP" access point before calling the scripts.
+1. Connect PC to Arduino Hotspot "tracked-object-AP" with password: "password".
+2. Run the script.
 ### save_packets_to_txt.py
 This script continuously saves the received UDP packets per line in a file called "packets.txt"
 ### rt_sensor_visualiser.py
