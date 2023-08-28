@@ -20,7 +20,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
-#include "../../../../util/util.h"
+#include "../../../../lib/structs.hpp"
 
 class LSM6DSOXClass {
   public:
@@ -47,7 +47,7 @@ class LSM6DSOXClass {
     int temperatureAvailable();
 
     // Custom
-    int readSensors(packetBuffer& packet);
+    int readSensors(PacketBuffer& packet);
     int calibrateSensors();
 
   public: 

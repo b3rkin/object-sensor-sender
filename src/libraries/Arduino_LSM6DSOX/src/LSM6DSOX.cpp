@@ -138,7 +138,7 @@ int LSM6DSOXClass::readAcceleration(float& x, float& y, float& z)
   return 1;
 }
 
-int LSM6DSOXClass::readSensors(packetBuffer& packet){
+int LSM6DSOXClass::readSensors(PacketBuffer& packet){
   
   int16_t data[6];
 
@@ -153,7 +153,7 @@ int LSM6DSOXClass::readSensors(packetBuffer& packet){
     return 0;
   }
 
-  packet.packet.packetTime = micros();
+  packet.packet.timestamp = micros();
 
   // Gx = data[0] * 250.0 / 32768.0 - gyroBias[0];
   // Gy = data[1] * 250.0 / 32768.0 - gyroBias[1];
@@ -165,7 +165,7 @@ int LSM6DSOXClass::readSensors(packetBuffer& packet){
 
   packet.packet.values[0] = data[0] * 8.75/1000  - gyroBias[0];
   packet.packet.values[1] = data[1] * 8.75/1000  - gyroBias[1];
-  packet.packet.values[2] = data[2] * 8.75 /1000 - gyroBias[2];
+  packet.packet.values[2] = data[2] * 8.75/1000  - gyroBias[2];
   packet.packet.values[3] = data[3] * 0.061/1000 - accBias[0];
   packet.packet.values[4] = data[4] * 0.061/1000 - accBias[1];
   packet.packet.values[5] = data[5] * 0.061/1000 - accBias[2];
@@ -176,7 +176,7 @@ int LSM6DSOXClass::readSensors(packetBuffer& packet){
 
 int LSM6DSOXClass::calibrateSensors(){
   const int calNum = 2500; 
-  packetBuffer sensorVals;
+  PacketBuffer sensorVals;
   float sensorSum[6] = {0,0,0,0,0,0};
   for( int count = 0; count < calNum; count += 1 ) { 
     readSensors(sensorVals);
